@@ -13,6 +13,7 @@ import { InterposerJunction } from "../../../../src/domain/boardview/value-objec
 import { SubBoardEntity, SubBoardRole } from "../../../../src/domain/catalog/entities/SubBoardEntity.js";
 import { PadEntity } from "../../../../src/domain/boardview/entities/PadEntity.js";
 import { LayerCoordinate } from "../../../../src/domain/boardview/value-objects/LayerCoordinate.js";
+import { LayerSide } from "../../../../src/domain/boardview/value-objects/LayerSide.js";
 
 describe("SchematicCrossProbeIndex Domain Service", () => {
   let crossProbeIndex: SchematicCrossProbeIndex;
@@ -101,7 +102,7 @@ describe("SchematicCrossProbeIndex Domain Service", () => {
       padNumber: "A12",
       subBoardId: "SUB_TOP",
       componentId: "U2700",
-      coordinate: new LayerCoordinate("TOP", 50.0, 60.0),
+      coordinate: new LayerCoordinate(50.0, 60.0, LayerSide.TOP_SIDE),
       netName: "PP_VDD_MAIN",
     }));
 
@@ -116,7 +117,7 @@ describe("SchematicCrossProbeIndex Domain Service", () => {
       padNumber: "C4",
       subBoardId: "SUB_BOT",
       componentId: "U_BB_PMU",
-      coordinate: new LayerCoordinate("BOTTOM", 55.0, 65.0),
+      coordinate: new LayerCoordinate(55.0, 65.0, LayerSide.BOTTOM_SIDE),
       netName: "PP_VDD_MAIN",
     }));
 

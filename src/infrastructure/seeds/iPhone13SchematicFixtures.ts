@@ -11,6 +11,7 @@ import { InterposerJunction } from "../../domain/boardview/value-objects/Interpo
 import { SubBoardEntity, SubBoardRole } from "../../domain/catalog/entities/SubBoardEntity.js";
 import { PadEntity } from "../../domain/boardview/entities/PadEntity.js";
 import { LayerCoordinate } from "../../domain/boardview/value-objects/LayerCoordinate.js";
+import { LayerSide } from "../../domain/boardview/value-objects/LayerSide.js";
 
 export interface iPhone13SchematicFixturesResult {
   document: SchematicDocument;
@@ -259,7 +260,7 @@ export class iPhone13SchematicFixtures {
       padNumber: "A12",
       subBoardId: "SUB_IPHONE13_TOP_LOGIC",
       componentId: "U2700",
-      coordinate: new LayerCoordinate("TOP", 50.0, 50.0),
+      coordinate: new LayerCoordinate(50.0, 50.0, LayerSide.TOP_SIDE),
       netName: "PP_VDD_MAIN",
     }));
 
@@ -268,7 +269,7 @@ export class iPhone13SchematicFixtures {
       padNumber: "C1",
       subBoardId: "SUB_IPHONE13_TOP_LOGIC",
       componentId: "U2700",
-      coordinate: new LayerCoordinate("TOP", 52.0, 50.0),
+      coordinate: new LayerCoordinate(52.0, 50.0, LayerSide.TOP_SIDE),
       netName: "PP_VDD_CPU_CORE",
     }));
 
@@ -277,7 +278,7 @@ export class iPhone13SchematicFixtures {
       padNumber: "E5",
       subBoardId: "SUB_IPHONE13_TOP_LOGIC",
       componentId: "U2700",
-      coordinate: new LayerCoordinate("TOP", 54.0, 50.0),
+      coordinate: new LayerCoordinate(54.0, 50.0, LayerSide.TOP_SIDE),
       netName: "PP1V8_S2",
     }));
 
@@ -286,7 +287,7 @@ export class iPhone13SchematicFixtures {
       padNumber: "F2",
       subBoardId: "SUB_IPHONE13_TOP_LOGIC",
       componentId: "U2700",
-      coordinate: new LayerCoordinate("TOP", 56.0, 50.0),
+      coordinate: new LayerCoordinate(56.0, 50.0, LayerSide.TOP_SIDE),
       netName: "BUTTON_TO_PMU_ONOFF_L",
     }));
 
@@ -295,7 +296,7 @@ export class iPhone13SchematicFixtures {
       padNumber: "1",
       subBoardId: "SUB_IPHONE13_TOP_LOGIC",
       componentId: "U3300",
-      coordinate: new LayerCoordinate("TOP", 70.0, 80.0),
+      coordinate: new LayerCoordinate(70.0, 80.0, LayerSide.TOP_SIDE),
       netName: "PP_BATT_VCC",
     }));
 
@@ -304,7 +305,7 @@ export class iPhone13SchematicFixtures {
       padNumber: "C4",
       subBoardId: "SUB_IPHONE13_BOT_RF",
       componentId: "U_BB_PMU",
-      coordinate: new LayerCoordinate("BOTTOM", 60.0, 60.0),
+      coordinate: new LayerCoordinate(60.0, 60.0, LayerSide.BOTTOM_SIDE),
       netName: "PP_VDD_MAIN",
     }));
 
