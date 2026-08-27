@@ -1,0 +1,7 @@
+export enum PowerRailType {
+  PRIMARY_BUS = "PRIMARY_BUS",
+  BOOST = "BOOST",
+  ALWAYS_ON_S2 = "ALWAYS_ON_S2",
+  CORE_BUCK = "CORE_BUCK",
+  LDO_SWITCHED = "LDO_SWITCHED",
+}

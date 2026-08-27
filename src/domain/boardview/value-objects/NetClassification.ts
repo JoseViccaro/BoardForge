@@ -1,0 +1,8 @@
+export enum NetClassification {
+  POWER_MAIN = "POWER_MAIN",
+  POWER_BUCK = "POWER_BUCK",
+  SIGNAL_I2C = "SIGNAL_I2C",
+  SIGNAL_SPI = "SIGNAL_SPI",
+  RF_ANTENNA = "RF_ANTENNA",
+  GROUND = "GROUND",
+}

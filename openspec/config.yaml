@@ -1,0 +1,59 @@
+# OpenSpec Configuration File
+schema_version: "1.0"
+project:
+  name: "BoardForge"
+  description: "Comprehensive engineering workbench for electronics repair, microelectronics diagnostics, and board analysis."
+  mode: "hybrid" # OpenSpec on disk + Engram persistent memory synchronization
+
+conventions:
+  architecture:
+    pattern: "Modular Monolith"
+    design_paradigms:
+      - "Clean Architecture"
+      - "Hexagonal Architecture (Ports & Adapters)"
+      - "Domain-Driven Design (DDD)"
+    dependency_rule: "Interfaces -> Application -> Domain <- Infrastructure"
+    inter_module_communication:
+      direct_db_access: false
+      contract_type: "Public Application Facades & In-Process Event Bus"
+      identifier_strategy: "UUIDv4 / ULID strongly-typed canonical IDs"
+  
+  security:
+    standard: "OWASP ASVS Level 2"
+    top10_mitigation: true
+    compliance: "RGPD / GDPR"
+    authentication:
+      access_token: "JWT (short-lived <= 15m) in HttpOnly Secure SameSite=Strict cookies"
+      refresh_token: "Opaque rotating refresh token with replay detection"
+      password_hashing: "Argon2id"
+      mfa: "TOTP RFC 6238"
+    authorization:
+      model: "RBAC + ABAC"
+      multi_tenancy: "Strict organization_id tenant scoping + DB Row-Level Security (RLS)"
+      idor_prevention: "Mandatory organization filter in all repository queries + UUIDs"
+    file_upload_pipeline:
+      validation: "Magic Bytes MIME verification (extension agnostic)"
+      antivirus: "Asynchronous ClamAV scanning"
+      storage: "Private Object Storage (AES-256 / SSE-S3) accessed via short-lived Presigned URLs"
+
+  testing:
+    strict_tdd: true
+    policy: "Red-Green-Refactor mandatory for domain logic, parsers, application services, and security rules."
+    status: "Configured (awaiting test runner configuration upon ADR OD-ARCH-001 stack closure)"
+    layers:
+      unit: "Pure domain models, value objects, math transforms, parsers"
+      integration: "Module facades, repositories, domain event bus"
+      security: "Tenant boundary isolation, IDOR prevention tests, file upload validation"
+      contract: "BoardView canonical schema, schematic coordinate mappings"
+
+paths:
+  specs: "openspec/specs"
+  changes: "openspec/changes"
+  archive: "openspec/changes/archive"
+
+documentation_sources:
+  - "docs/product/PRODUCT_FOUNDATION.md"
+  - "docs/architecture/ARCHITECTURE_PRINCIPLES.md"
+  - "docs/security/SECURITY_PRINCIPLES.md"
+  - "docs/decisions/README.md"
+  - ".atl/skill-registry.md"

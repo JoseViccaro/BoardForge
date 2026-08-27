@@ -1,0 +1,7 @@
+export enum PowerSequenceState {
+  S5_OFF = "S5_OFF",
+  S4_STANDBY = "S4_STANDBY",
+  S3_TRIGGER = "S3_TRIGGER",
+  S2_SLEEP = "S2_SLEEP",
+  S0_FULL_EXECUTION = "S0_FULL_EXECUTION",
+}
