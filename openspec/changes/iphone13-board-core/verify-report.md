@@ -1,18 +1,17 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-change: iphone13-board-core
-status: pass
-verdict: PASSED
-coverage:
-  requirements_total: 11
-  requirements_passed: 11
-  scenarios_total: 12
-  scenarios_passed: 12
-tests:
-  framework: vitest
-  total: 128
-  passed: 128
-  failed: 0
+evidence_revision: 9adb101ab1e08b665f344b5e3420b7d06f6bdafb
+verdict: pass
+blockers: 0
+critical_findings: 0
+requirements: 11/11
+scenarios: 12/12
+test_command: pnpm test
+test_exit_code: 0
+test_output_hash: sha256:b336ea50a02e7388588f803eaa5bf947b1fe011e20b25c7b9b850740ebc44c79
+build_command: pnpm build
+build_exit_code: 0
+build_output_hash: sha256:9ccc9de7f0e87628a6c494dbb30d733be2b3a5a8d802cf22ba1764eec47c96ae
 ```
 
 # OpenSpec Verification Report: `iphone13-board-core`
