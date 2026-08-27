@@ -64,6 +64,18 @@ export class MeasurementReference {
     return this.toleranceWindow.nominal;
   }
 
+  public get min(): number {
+    return this.toleranceWindow.min;
+  }
+
+  public get max(): number {
+    return this.toleranceWindow.max;
+  }
+
+  public get tolerancePct(): number {
+    return this.toleranceWindow.tolerancePct;
+  }
+
   public evaluate(measured: number | DiodeReading): EvaluationOutcome {
     return this.toleranceWindow.evaluate(measured);
   }

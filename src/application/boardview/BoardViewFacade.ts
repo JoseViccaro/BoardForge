@@ -99,7 +99,7 @@ export class BoardViewFacade {
       throw new EntityNotFoundError(`Board '${boardId}' not found.`);
     }
 
-    const topology = await this.topologyRepo.findByCanonicalNetName(board.id, netName);
+    const topology = await this.topologyRepo.findByCanonicalNetName(board.id.value, netName);
     if (!topology) {
       // Return synthetic topology if not explicitly saved as aggregate
       const localPins: any[] = [];
