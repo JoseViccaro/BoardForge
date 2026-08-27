@@ -1,5 +1,5 @@
-import { BoardViewFormat } from "../../domain/boardview/value-objects/BoardViewFormat.js";
-import { InterposerMappingRule } from "../../domain/boardview/services/BoardViewToCanonicalTransformer.js";
+import { BoardViewFormat } from "../../../domain/boardview/value-objects/BoardViewFormat.js";
+import { InterposerMappingRule } from "../../../domain/boardview/services/BoardViewToCanonicalTransformer.js";
 
 export interface BoardFileInput {
   subBoardId: string;

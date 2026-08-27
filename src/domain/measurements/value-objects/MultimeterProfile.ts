@@ -3,6 +3,12 @@ function roundPrecision(val: number, decimals: number = 4): number {
   return Math.round(val * factor) / factor;
 }
 
+export interface MultimeterProfileProps {
+  meterModel: string;
+  scaleFactor?: number;
+  offsetVolts?: number;
+}
+
 export class MultimeterProfile {
   public readonly name: string;
   public readonly scaleFactor: number;
