@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore } from "react";
+import React, { useEffect, useMemo, useSyncExternalStore } from "react";
 import { WorkbenchFacade } from "../../application/workbench/WorkbenchFacade.js";
 import { BoardViewFacade } from "../../application/boardview/BoardViewFacade.js";
 import { SchematicsFacade } from "../../application/schematics/SchematicsFacade.js";
@@ -13,15 +13,21 @@ import { InMemoryNetTopologyRepository } from "../../infrastructure/persistence/
 import { InMemoryMeasurementRepository } from "../../infrastructure/persistence/in-memory/InMemoryMeasurementRepository.js";
 import { BoardViewParserFactory } from "../../infrastructure/boardview/parsers/BoardViewParserFactory.js";
 import { BoardViewToCanonicalTransformer } from "../../domain/boardview/services/BoardViewToCanonicalTransformer.js";
+import { SchematicCrossProbeIndex } from "../../domain/schematics/services/SchematicCrossProbeIndex.js";
 import { createIPhone13LogicBoardFixture } from "../../infrastructure/seeds/iPhone13_820_02106_Seed.js";
 import { iPhone13SchematicFixtures } from "../../infrastructure/seeds/iPhone13SchematicFixtures.js";
+import { generateExactIPhone13MasterCAD } from "../../domain/boardview/geometry/iPhone13Exact4BoardCAD.js";
+import { BoardViewPanel } from "../boardview/BoardViewPanel.js";
+
+/** Board opened by the shell through the workbench facade (seeded iPhone 13). */
+const SHELL_BOARD_ID = "BRD_820_02106";
 
 /**
- * BoardForgeShell — workbench panel shell (PR 1 skeleton).
+ * BoardForgeShell — workbench panel shell (PR 1 skeleton + PR 2 boardview).
  *
  * Renders the four panel slots (boardview, schematics, navigator, measurements)
- * and subscribes to the SessionStore via useSyncExternalStore (D1). Real panels
- * land in PR 2-6; until then each slot shows a placeholder.
+ * and subscribes to the SessionStore via useSyncExternalStore (D1). The
+ * boardview slot is live since PR 2; the remaining slots land in PR 3-6.
  */
 
 export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
@@ -31,6 +37,24 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
   );
 
   const pairing = session.pairing;
+
+  // Open the seeded iPhone 13 board on mount: resolves the companion schematic
+  // (pairing.resolved on the bus) and provides the selection boardId.
+  useEffect(() => {
+    void facade.openBoard(SHELL_BOARD_ID, { boardModel: "iPhone13", boardRevision: "820-02106" });
+  }, [facade]);
+
+  // Panel data: iPhone 13 CAD geometry (matches the opened board + schematic).
+  const boardData = useMemo(() => generateExactIPhone13MasterCAD(), []);
+
+  // Cross-probe index fed from the schematic fixture (consumed on pin click).
+  const crossProbe = useMemo(() => {
+    const index = new SchematicCrossProbeIndex();
+    index.registerSchematicDocument(iPhone13SchematicFixtures.createFixtures().document);
+    return index;
+  }, []);
+
+  const boardId = pairing?.boardId ?? SHELL_BOARD_ID;
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
@@ -46,7 +70,9 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
                 PLATFORM FOUNDATION
               </span>
             </div>
-            <div className="text-[11px] text-slate-400">Synchronized repair workbench — panels land in PR 2-6</div>
+            <div className="text-[11px] text-slate-400">
+              Synchronized repair workbench — boardview live (PR 2) · schematic/navigator/measure in PR 3-6
+            </div>
           </div>
         </div>
 
@@ -71,12 +97,14 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
       <div className="flex-1 flex overflow-hidden">
         <section
           data-panel="boardview"
-          className="flex-1 bg-slate-950 border-r border-slate-800 flex items-center justify-center"
+          className="flex-1 bg-slate-950 border-r border-slate-800 flex flex-col overflow-hidden"
         >
-          <div className="text-center text-slate-600">
-            <div className="text-[11px] font-mono uppercase tracking-wider mb-1">BoardView Panel</div>
-            <div className="text-[10px] font-mono text-slate-700">slot · placeholder (PR 2)</div>
-          </div>
+          <BoardViewPanel
+            facade={facade}
+            boardId={boardId}
+            boardData={boardData}
+            crossProbe={crossProbe}
+          />
         </section>
         <section
           data-panel="schematics"
