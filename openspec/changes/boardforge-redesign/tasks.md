@@ -44,15 +44,15 @@ Satisfies: **workbench** spec (WorkbenchFacade composition, event bus, keyboard 
 - [x] 1.9 Create `src/ui/workbench/BoardForgeShell.tsx` — minimal shell skeleton: renders placeholder divs for boardview/schematic/navigator/measure panels; subscribes to `SessionStore` via `useSyncExternalStore`
 - [x] 1.10 Modify `src/App.tsx` — add feature flag toggle; behind flag render `BoardForgeShell` instead of current monolith; existing render path unchanged
 
-## Phase 2: BoardView Panel Extraction
+## Phase 2: BoardView Panel Extraction — [x] ALL DONE (PR 2, branch feat/boardforge-workbench-02-boardview; 326 tests: 303 baseline + 23 new; vite build ok)
 
 Satisfies: **boardview** spec (auto-pairing, net highlighting sync, pin hover/click). Depends on Phase 1 bus/facade.
 
-- [ ] 2.1 RED: Create `tests/unit/ui/boardview/BoardViewPanel.test.ts` — renders board from fixture data; emits `selection.change` on net click; highlight reflects active selection; layer flip preserves highlight
-- [ ] 2.2 GREEN: Create `src/ui/extract-render.ts` — extract canvas paint function from `App.tsx` into pure function `renderBoard(canvas, boardData, options)`
-- [ ] 2.3 GREEN: Create `src/ui/boardview/BoardViewPanel.tsx` — React component: canvas + layer tabs + pin hover tooltip (net name, classification) + click reveals schematic details via `SchematicCrossProbeIndex`; subscribes to `selection.change` on bus
-- [ ] 2.4 Wire `BoardForgeShell.tsx` to render `BoardViewPanel` in the boardview slot; pass facade for data access
-- [ ] 2.5 Modify `src/App.tsx` — behind feature flag, replace current boardview inline code with `BoardForgeShell` composition
+- [x] 2.1 RED: Create `tests/unit/ui/boardview/BoardViewPanel.test.ts` — renders board from fixture data; emits `selection.change` on net click; highlight reflects active selection; layer flip preserves highlight
+- [x] 2.2 GREEN: Create `src/ui/extract-render.ts` — extract canvas paint function from `App.tsx` into pure function `renderBoard(canvas, boardData, options)`
+- [x] 2.3 GREEN: Create `src/ui/boardview/BoardViewPanel.tsx` — React component: canvas + layer tabs + pin hover tooltip (net name, classification) + click reveals schematic details via `SchematicCrossProbeIndex`; subscribes to `selection.change` on bus
+- [x] 2.4 Wire `BoardForgeShell.tsx` to render `BoardViewPanel` in the boardview slot; pass facade for data access
+- [x] 2.5 Modify `src/App.tsx` — behind feature flag, replace current boardview inline code with `BoardForgeShell` composition
 
 ## Phase 3: Schematics Panel (Vector Renderer + Overlay)
 
