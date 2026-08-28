@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { 
   Search, 
@@ -20,8 +21,46 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { generateExactIPhone11ProMasterCAD, IPhone11ProPin, IPhone11ProComp } from "./domain/boardview/geometry/iPhone11ProExact4BoardCAD";
+import {
+  BoardForgeShell,
+  createWorkbenchFacade,
+} from "./ui/workbench/BoardForgeShell.js";
+import type { WorkbenchFacade } from "./application/workbench/WorkbenchFacade.js";
+
+// Feature flag (PR 1 Platform Foundation): the legacy single-pane boardview stays
+// the default until all workbench panels land (PR 6 flips the default to true).
+// Enable via VITE_WORKBENCH=true|1.
+const WORKBENCH_ENABLED =
+  import.meta.env.VITE_WORKBENCH === "1" || import.meta.env.VITE_WORKBENCH === "true";
 
 export function App() {
+  const [workspaceFacade, setWorkspaceFacade] = useState<WorkbenchFacade | null>(null);
+
+  useEffect(() => {
+    if (!WORKBENCH_ENABLED) return;
+    let cancelled = false;
+    void createWorkbenchFacade().then((facade) => {
+      if (!cancelled) setWorkspaceFacade(facade);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!WORKBENCH_ENABLED) {
+    return <LegacyBoardView />;
+  }
+  if (workspaceFacade === null) {
+    return (
+      <div className="h-screen w-screen bg-slate-950 text-slate-100 flex items-center justify-center font-mono text-xs">
+        Initializing workbench…
+      </div>
+    );
+  }
+  return <BoardForgeShell facade={workspaceFacade} />;
+}
+
+export function LegacyBoardView() {
   const [boardData, setBoardData] = useState(() => generateExactIPhone11ProMasterCAD());
   const [activeNet, setActiveNet] = useState<string>("PP_VDD_MAIN");
   const [selectedPin, setSelectedPin] = useState<IPhone11ProPin | null>(null);
