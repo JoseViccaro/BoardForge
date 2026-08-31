@@ -17,7 +17,9 @@ import { SchematicCrossProbeIndex } from "../../domain/schematics/services/Schem
 import { createIPhone13LogicBoardFixture } from "../../infrastructure/seeds/iPhone13_820_02106_Seed.js";
 import { iPhone13SchematicFixtures } from "../../infrastructure/seeds/iPhone13SchematicFixtures.js";
 import { generateExactIPhone13MasterCAD } from "../../domain/boardview/geometry/iPhone13Exact4BoardCAD.js";
+import type { SchematicDocument } from "../../domain/schematics/aggregates/SchematicDocument.js";
 import { BoardViewPanel } from "../boardview/BoardViewPanel.js";
+import { SchematicPanel } from "../schematics/SchematicPanel.js";
 
 /** Board opened by the shell through the workbench facade (seeded iPhone 13). */
 const SHELL_BOARD_ID = "BRD_820_02106";
@@ -47,12 +49,18 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
   // Panel data: iPhone 13 CAD geometry (matches the opened board + schematic).
   const boardData = useMemo(() => generateExactIPhone13MasterCAD(), []);
 
-  // Cross-probe index fed from the schematic fixture (consumed on pin click).
+  // Cross-probe index fed from the schematic fixture (consumed on pin click),
+  // plus the fixture's schematic document consumed by the SchematicPanel.
+  const schematicDocument: SchematicDocument = useMemo(
+    () => iPhone13SchematicFixtures.createFixtures().document,
+    []
+  );
+
   const crossProbe = useMemo(() => {
     const index = new SchematicCrossProbeIndex();
-    index.registerSchematicDocument(iPhone13SchematicFixtures.createFixtures().document);
+    index.registerSchematicDocument(schematicDocument);
     return index;
-  }, []);
+  }, [schematicDocument]);
 
   const boardId = pairing?.boardId ?? SHELL_BOARD_ID;
 
@@ -71,7 +79,7 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
               </span>
             </div>
             <div className="text-[11px] text-slate-400">
-              Synchronized repair workbench — boardview live (PR 2) · schematic/navigator/measure in PR 3-6
+              Synchronized repair workbench — boardview + schematics live (PR 2/3) · navigator/measure in PR 5-6
             </div>
           </div>
         </div>
@@ -108,12 +116,13 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
         </section>
         <section
           data-panel="schematics"
-          className="flex-1 bg-slate-950 flex items-center justify-center"
+          className="flex-1 bg-slate-950 flex flex-col overflow-hidden"
         >
-          <div className="text-center text-slate-600">
-            <div className="text-[11px] font-mono uppercase tracking-wider mb-1">Schematics Panel</div>
-            <div className="text-[10px] font-mono text-slate-700">slot · placeholder (PR 3)</div>
-          </div>
+          <SchematicPanel
+            facade={facade}
+            document={schematicDocument}
+            crossProbe={crossProbe}
+          />
         </section>
       </div>
 
