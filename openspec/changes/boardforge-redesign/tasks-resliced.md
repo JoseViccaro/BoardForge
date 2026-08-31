@@ -31,9 +31,9 @@ Phase order preserved: 3 schematics → 4 sync → 5 search → 6 measurements/s
 ```text
 feat/boardforge-workbench            ← tracker (PR 1, shipped)
  └─ feat/boardforge-workbench-02-boardview     (PR 2, applied — awaiting gate)
-     └─ 📍 feat/boardforge-workbench-03-vector-renderer     (3A)
-         └─ -04-hit-tester    (3B) → -05-overlay-resolve (3C) → -06-schematic-model (3D)
-             → -07-schematic-panel (3E) → -08-cross-panel-sync (4A) → -09-keyboard-shortcuts (4B)
+     └─ -03-vector-renderer    (3A) → -04-hit-tester (3B) → -05-overlay-resolve (3C)
+         → -06-schematic-model (3D) → -07-schematic-panel (3E)
+             → 📍 -08-cross-panel-sync (4A) → -09-keyboard-shortcuts (4B)
              → -10-search-core (5A) → -11-search-history-symptom (5B) → -12-net-navigator (5C)
              → -13-measurement-store (6A) → -14-measurement-persist-export (6B)
              → -15-measurement-panel (6C) → -16-session-restore (6D) → -17-shell-finalize (6E)
@@ -49,7 +49,7 @@ Only the tracker merges to main, after PR 17 integrates.
 | 3C | Overlay resolver: cross-probe reverse map | + `src/ui/schematics/overlay-resolve.ts`; + `tests/unit/ui/schematics/overlay-resolve.test.ts` | schematics R2 (both scenarios) | 300 | 8 tests: net PP_VDD_MAIN → per-page highlights, canonical pages, no occurrence → EMPTY + notInSchematic signal (registered CrossProbeIndex doc) | `feat/boardforge-workbench-05-overlay-resolve` — [x] applied | 3B; domain `SchematicCrossProbeIndex` |
 | 3D | Page-navigation + detail pin-map cores | + `src/ui/schematics/schematic-nav.ts`, `schematic-pinmap.ts`; + 2 test files | schematics R3 (nav scenario), R4 (pin-map scenario) | 330 | 12 tests: jump U2700 → page 12 + list [12,13,14], next/prev bounds, pin A12 row (name/page/coords) + net PP_VDD_MAIN | `feat/boardforge-workbench-06-schematic-model` — [x] applied | 3C |
 | 3E | SchematicPanel thin adapter + shell slot | + `src/ui/schematics/SchematicPanel.tsx`; mod `src/ui/workbench/BoardForgeShell.tsx` | schematics R1-R4 end-to-end UI | 359 (actual) | none (zero-logic adapter per PR 2 pattern); gate = full `pnpm test` + `pnpm build` green | `feat/boardforge-workbench-07-schematic-panel` — [x] applied | 3D |
-| 4A | Cross-panel sync: boardview→bus→schematic | + `tests/integration/workbench/crossPanelSync.test.ts`; mod SchematicPanel bus/CSP wiring | schematics R2 (integration), design D1/D2 | 350 | 6 tests: select net → bus → overlay via queryFromBoardViewNet; no-counterpart → schematic empty + marker event emitted | `feat/boardforge-workbench-08-cross-panel-sync` | 3E |
+| 4A | Cross-panel sync: boardview→bus→schematic | + `tests/integration/workbench/crossPanelSync.test.ts`; mod SchematicPanel bus/CSP wiring | schematics R2 (integration), design D1/D2 | 350 (actual 392) | 6 tests: select net → bus → overlay via queryFromBoardViewNet; no-counterpart → schematic empty + marker event emitted | `feat/boardforge-workbench-08-cross-panel-sync` — [x] applied | 3E |
 | 4B | Keyboard shortcuts pure core | + `src/ui/workbench/keyboardShortcuts.ts` + test; mod BoardForgeShell | workbench nav; ASVS L2 input handling | 250 | 8 tests: Ctrl+number focus, net jump, cross-probe toggle, ignore browser chrome keys | `feat/boardforge-workbench-09-keyboard-shortcuts` | 4A |
 | 5A | WorkbenchSearchService core: 4-field index + rank + context | mod `src/application/workbench/WorkbenchSearchService.ts` (replaces PR 1 stub); + `tests/unit/workbench/search-core.test.ts` | search R1 (3 scenarios), R2 (1) | 390 | 11 tests: substring VDD_MAIN / designator U2700 / part PMX60, panel+board context, incremental-as-typed | `feat/boardforge-workbench-10-search-core` | 4B |
 | 5B | Search history + symptom reference mapping | mod `WorkbenchSearchService.ts`; + `tests/unit/workbench/search-history-symptom.test.ts` | search R3 (2 scenarios), R4 (1) | 270 | 7 tests: newest-first, dedupe, session-restore slice, CRITICAL_LOW_OR_SHORT mapping, query sanitization | `feat/boardforge-workbench-11-search-history-symptom` | 5A |
