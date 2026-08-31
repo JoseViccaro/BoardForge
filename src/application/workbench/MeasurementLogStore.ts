@@ -43,8 +43,43 @@ export interface RecordMeasurementInput {
 
 const TREND_EPSILON = 0.005;
 
+/** Abstract storage port for IndexedDB persistence (mirrors ISessionStoragePort pattern). */
+export interface IMeasurementStoragePort {
+  read(key: string): Promise<string | null>;
+  write(key: string, value: string): Promise<void>;
+}
+
+/** CSV injection prevention: prefix fields starting with formula-trigger characters (ASVS L2). */
+const CSV_INJECTION_RE = /^[=+\-@]/;
+
+function sanitizeCsvValue(value: string): string {
+  if (CSV_INJECTION_RE.test(value)) {
+    return `'${value}`;
+  }
+  return value;
+}
+
+const CSV_HEADER = [
+  "padId",
+  "netName",
+  "outcome",
+  "measuredVolts",
+  "normalizedVolts",
+  "recordedAt",
+  "boardState",
+  "meterModel",
+];
+
+function escapeCsvField(value: string): string {
+  const sanitized = sanitizeCsvValue(value);
+  if (sanitized.includes(",") || sanitized.includes('"') || sanitized.includes("\n")) {
+    return `"${sanitized.replace(/"/g, '""')}"`;
+  }
+  return sanitized;
+}
+
 export class MeasurementLogStore {
-  private readonly entries: MeasurementLogEntry[] = [];
+  private entries: MeasurementLogEntry[] = [];
   private readonly evaluator = new DiodeModeEvaluator();
 
   /**
@@ -104,5 +139,50 @@ export class MeasurementLogStore {
       return "STABLE";
     }
     return delta > 0 ? "UP" : "DOWN";
+  }
+
+  /* ── Export (measurements R4) ── */
+
+  /** Serializes all log entries to CSV with a header row. ASVS L2 sanitized. */
+  public exportCSV(): string {
+    const header = CSV_HEADER.join(",");
+    if (this.entries.length === 0) return header;
+    const rows = this.entries.map((e) =>
+      CSV_HEADER.map((col) => {
+        const raw = String(e[col as keyof MeasurementLogEntry] ?? "");
+        return escapeCsvField(raw);
+      }).join(",")
+    );
+    return [header, ...rows].join("\n");
+  }
+
+  /** Serializes all log entries to a JSON array string. */
+  public exportJSON(): string {
+    return JSON.stringify(this.entries);
+  }
+
+  /* ── Persistence (session R2) ── */
+
+  /** Persists the log entries to the storage port as JSON under the given key. */
+  public async save(port: IMeasurementStoragePort, key: string): Promise<void> {
+    await port.write(key, JSON.stringify(this.entries));
+  }
+
+  /**
+   * Loads entries from the storage port, replacing the current log. Returns true
+   * if data was found at the key, false otherwise.
+   */
+  public async load(port: IMeasurementStoragePort, key: string): Promise<boolean> {
+    const raw = await port.read(key);
+    if (raw === null) return false;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        this.entries = parsed as MeasurementLogEntry[];
+      }
+    } catch {
+      // Corrupt data — leave entries empty (ASVS L2: fail safe)
+    }
+    return true;
   }
 }
