@@ -25,6 +25,7 @@ import {
   isPinHighlighted,
   BOARD_LAYER_TABS,
   type BoardGeometryData,
+  type Draw2D,
 } from "../../../../src/ui/extract-render.js";
 
 // ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ interface RecordedCtx {
 }
 
 function makeFakeCanvas(): {
-  canvas: { width: number; height: number; clientWidth: number; clientHeight: number; getContext: () => unknown };
+  canvas: { width: number; height: number; clientWidth: number; clientHeight: number; getContext(): Draw2D | null };
   ctx: RecordedCtx;
 } {
   const calls: string[] = [];
@@ -50,7 +51,7 @@ function makeFakeCanvas(): {
   let fillStyle = "#000";
   let strokeStyle = "#000";
 
-  const ctx = {
+  const ctx: Draw2D = {
     save: () => calls.push("save"),
     restore: () => calls.push("restore"),
     scale: () => calls.push("scale"),
@@ -72,12 +73,10 @@ function makeFakeCanvas(): {
     rect: () => calls.push("rect"),
     roundRect: () => calls.push("roundRect"),
     fillText: () => calls.push("fillText"),
-    set fillStyle(v: string) {
-      fillStyle = v;
-    },
-    set strokeStyle(v: string) {
-      strokeStyle = v;
-    },
+    get fillStyle() { return fillStyle; },
+    set fillStyle(v: string) { fillStyle = v; },
+    get strokeStyle() { return strokeStyle; },
+    set strokeStyle(v: string) { strokeStyle = v; },
     lineWidth: 0,
     font: "",
     textAlign: "",

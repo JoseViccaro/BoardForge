@@ -8,6 +8,7 @@ import {
 } from "../../../src/application/workbench/SessionStore.js";
 import { MeasurementLogStore } from "../../../src/application/workbench/MeasurementLogStore.js";
 import { DiagnosticBoardState } from "../../../src/domain/measurements/value-objects/DiagnosticBoardState.js";
+import { EvaluationOutcome } from "../../../src/domain/measurements/value-objects/EvaluationOutcome.js";
 import { EntityNotFoundError } from "../../../src/interfaces/http/errors/HttpErrors.js";
 
 /* in-memory storage port fake (node-testable roundtrip, mirrors WorkbenchFacade.test.ts) */
@@ -92,7 +93,7 @@ function makeFullSession(overrides: Partial<SessionState> = {}): SessionState {
       {
         padId: "INT_PAD_084",
         netName: "PP_VDD_MAIN",
-        outcome: "PASS",
+        outcome: EvaluationOutcome.PASS,
         measuredVolts: 0.42,
         normalizedVolts: 0.425,
         recordedAt: "2026-01-01T00:00:00.000Z",

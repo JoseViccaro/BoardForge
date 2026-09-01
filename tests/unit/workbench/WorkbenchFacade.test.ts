@@ -9,6 +9,7 @@ import {
   WorkbenchSearchService,
   type SearchHit,
 } from "../../../src/application/workbench/WorkbenchSearchService.js";
+import { EvaluationOutcome } from "../../../src/domain/measurements/value-objects/EvaluationOutcome.js";
 import { DiagnosticBoardState } from "../../../src/domain/measurements/value-objects/DiagnosticBoardState.js";
 import { EntityNotFoundError } from "../../../src/interfaces/http/errors/HttpErrors.js";
 
@@ -61,7 +62,7 @@ function createHarness() {
     getReferences: vi.fn(async () => ({ references: [] })),
     createReference: vi.fn(),
     recordMeasurement: vi.fn(async () => ({
-      outcome: "PASS",
+      outcome: EvaluationOutcome.PASS,
       isPass: true,
       measuredVolts: 0.42,
       normalizedVolts: 0.425,
@@ -149,7 +150,7 @@ describe("WorkbenchFacade", () => {
 
   it("delegates search to the WorkbenchSearchService", () => {
     const { bus, sessionStore, boardViewFacade, schematicsFacade, measurementsFacade } = createHarness();
-    const hit: SearchHit = { id: "HIT_1", field: "net", label: "PP_VDD_MAIN", boardId: "BRD_820_02106" };
+    const hit: SearchHit = { id: "HIT_1", field: "net", label: "PP_VDD_MAIN", boardId: "BRD_820_02106", panel: "navigator" };
     const searchService = new WorkbenchSearchService();
     const spy = vi.spyOn(searchService, "search").mockReturnValue([hit]);
     const facade = new WorkbenchFacade({
@@ -170,7 +171,7 @@ describe("WorkbenchFacade", () => {
 
   it("publishes search.focus on hits but not on empty results", () => {
     const { bus, sessionStore, boardViewFacade, schematicsFacade, measurementsFacade } = createHarness();
-    const hit: SearchHit = { id: "HIT_1", field: "net", label: "PP_VDD_MAIN", boardId: "BRD_820_02106" };
+    const hit: SearchHit = { id: "HIT_1", field: "net", label: "PP_VDD_MAIN", boardId: "BRD_820_02106", panel: "navigator" };
     const searchService = new WorkbenchSearchService();
     const searchSpy = vi.spyOn(searchService, "search").mockReturnValue([hit]);
     const facade = new WorkbenchFacade({

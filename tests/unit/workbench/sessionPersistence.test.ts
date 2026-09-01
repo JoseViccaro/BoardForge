@@ -5,6 +5,8 @@ import {
   type ISessionStoragePort,
   type SessionState,
 } from "../../../src/application/workbench/SessionStore.js";
+import { EvaluationOutcome } from "../../../src/domain/measurements/value-objects/EvaluationOutcome.js";
+import { DiagnosticBoardState } from "../../../src/domain/measurements/value-objects/DiagnosticBoardState.js";
 
 /* ── in-memory port fake (node-testable roundtrip) ── */
 
@@ -62,21 +64,21 @@ function makeFullSession(overrides?: Partial<SessionState>): SessionState {
       {
         padId: "INT_PAD_084",
         netName: "PP_VDD_MAIN",
-        outcome: "PASS",
+        outcome: EvaluationOutcome.PASS,
         measuredVolts: 0.42,
         normalizedVolts: 0.42,
         recordedAt: "2026-01-01T00:00:00.000Z",
-        boardState: "SPLIT_TOP",
+        boardState: DiagnosticBoardState.SPLIT_TOP,
         meterModel: "FLUKE_115_STANDARD",
       },
       {
         padId: "INT_PAD_085",
         netName: "PP_VDD_CORE",
-        outcome: "PASS",
+        outcome: EvaluationOutcome.PASS,
         measuredVolts: 0.5,
         normalizedVolts: 0.5,
         recordedAt: "2026-01-01T00:00:01.000Z",
-        boardState: "SPLIT_TOP",
+        boardState: DiagnosticBoardState.SPLIT_TOP,
         meterModel: "SUNSHINE_DT17N",
       },
     ],
@@ -214,11 +216,11 @@ describe("SessionStore — full session restore pipeline (6D)", () => {
         {
           padId: "X",
           netName: null,
-          outcome: "TOTALLY_INVALID_OUTCOME",
+          outcome: "TOTALLY_INVALID_OUTCOME" as unknown as EvaluationOutcome,
           measuredVolts: 0.42,
           normalizedVolts: 0.42,
           recordedAt: "2026-01-01T00:00:00.000Z",
-          boardState: "SPLIT_TOP",
+          boardState: DiagnosticBoardState.SPLIT_TOP,
           meterModel: "FLUKE",
         },
       ],

@@ -22,6 +22,7 @@ import {
   isPinHighlighted,
   BOARD_LAYER_TABS,
   type BoardGeometryData,
+  type CanvasLike,
   type CrossProbeReveal,
 } from "../extract-render.js";
 
@@ -60,7 +61,7 @@ export function BoardViewPanel({ facade, boardId, boardData, crossProbe }: Board
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    renderBoard(canvas, boardData, {
+    renderBoard(canvas as CanvasLike, boardData, {
       activeNet,
       selectedPinId,
       hoveredPinId,
