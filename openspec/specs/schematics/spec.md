@@ -143,6 +143,23 @@ The `schematics` domain models power trees, rail dependencies, voltage regulator
   - THEN it lists pin `A12` with name, page 12, and coordinates
   - AND it lists the connected net `PP_VDD_MAIN`
 
+### Requirement 2.15: Schematic Ingestion & Format Detection
+* The ingestion engine MUST validate input file signatures against recognized Magic MIME types (Vector PDF, CAD Netlist).
+* The parser SHALL execute asynchronously without blocking the host main event loop.
+* Upon successful stream parsing, the engine MUST emit `SchematicIngestionCompleted` domain events.
+* Unsupported binary or textual formats MUST be rejected immediately with `UnsupportedFormatError`.
+
+### Requirement 2.16: Schematic Domain Aggregate Integrity
+* The engine MUST construct a fully normalized `SchematicDocument` aggregate root.
+* Each document SHALL contain one or more `SchematicSheet` instances.
+* Each sheet MUST encapsulate `SchematicSymbol` entities with valid `RefDes`, component value, and package footprint.
+* Symbols MUST declare child `SchematicPin` definitions associated with `SchematicNet` logical identifiers.
+
+### Requirement 2.17: Error Handling & Corrupted Stream Recovery
+* Malformed PDF streams, truncated byte buffers, or invalid CAD syntax MUST fail gracefully with typed domain errors (`CorruptedStreamError`, `UnsupportedFormatError`).
+* The parser MUST NOT crash or leak partial unvalidated aggregates into the domain repository.
+* When executing in resilient mode, partial corruptions on isolated sheets MUST emit `SheetParsingWarning` / `ParseDiagnostic` while allowing remaining valid sheets to be indexed successfully.
+
 ---
 
 ## 3. Given / When / Then Testable Scenarios (TDD)
@@ -217,3 +234,38 @@ Then the resolved net name MUST be "PP_VDD_MAIN"
 And the physical BoardView pads MUST include "TOP_U2700_A12" on sub-board "SUB_IPHONE13_TOP_LOGIC"
 And include Interposer pad "INT_PAD_084".
 ```
+
+### Scenario 3.8: Successful Vector PDF Ingestion
+```gherkin
+Given a valid vector PDF schematic payload with "%PDF-" magic header
+When the ingestion engine parses the stream
+Then the parsing executes asynchronously without blocking the event loop
+And a "SchematicIngestionCompleted" domain event is emitted containing the parsed document ID.
+```
+
+### Scenario 3.9: Unsupported MIME Rejection
+```gherkin
+Given an arbitrary binary file with unrecognized magic header "0x89504E47"
+When ingestion is initiated
+Then the engine MUST reject the file with "UnsupportedFormatError"
+And no domain aggregate SHALL be allocated.
+```
+
+### Scenario 3.10: Duplicate RefDes Disambiguation
+```gherkin
+Given a split multi-unit IC symbol with identical RefDes ("U2700_A", "U2700_B") across sheets
+When domain aggregate validation executes
+Then the symbols MUST be aggregated under the parent RefDes "U2700"
+And all pin definitions across both sheets MUST resolve uniquely without collision.
+```
+
+### Scenario 3.11: Truncated Vector Stream Failure & Resilient Recovery
+```gherkin
+Given a corrupted PDF stream truncated at byte offset 1024
+When the parser attempts to decode the stream
+Then the engine MUST throw "CorruptedStreamError"
+And when a multi-sheet document has a corrupted sheet 5 in resilient mode
+Then the engine MUST emit a "SheetParsingWarning"
+And all remaining valid sheets MUST be successfully indexed.
+```
+

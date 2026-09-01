@@ -232,38 +232,55 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
-      <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-black text-slate-950 text-base shadow-lg shadow-amber-500/20">
-            BF
+      {/* JCID / ZXW Professional Top Diagnostic Ribbon */}
+      <header className="h-10 bg-[#0f172a] border-b border-slate-700/80 px-2 flex items-center justify-between shrink-0 z-30 select-none">
+        {/* Left: Quick Actions Ribbon */}
+        <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1.5 px-2 py-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded text-white font-black text-xs shadow-sm mr-2">
+            <span>JC-Forge</span>
+            <span className="text-[9px] font-normal opacity-80">v3.2</span>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-bold text-slate-100 tracking-tight text-sm">BoardForge Workbench</span>
-              <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded">
-                PLATFORM FOUNDATION
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-400">
-              Synchronized repair workbench — boardview + schematics + navigator live (PR 2-5) · measure in PR 6
-            </div>
+
+          <div className="flex items-center space-x-1 border-r border-slate-700 pr-2 mr-1">
+            <button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-medium flex items-center space-x-1">
+              <span>📱 Model Tree</span>
+            </button>
+            <button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-medium flex items-center space-x-1">
+              <span>📷 Real View</span>
+            </button>
+            <button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded text-[11px] font-medium flex items-center space-x-1">
+              <span>⚡ Volt (mV)</span>
+            </button>
+            <button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 rounded text-[11px] font-medium flex items-center space-x-1">
+              <span>Ω Diode/Ress</span>
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-1">
+            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded text-[10px] font-mono font-bold">
+              iPhone 13 (820-02106)
+            </span>
+            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-[10px] font-mono">
+              Dual BoardView (Side A + Side B)
+            </span>
           </div>
         </div>
 
+        {/* Right: Companion Pairing & Status */}
         <div className="flex items-center space-x-2 text-xs font-mono">
-          <span className="text-slate-400">Pairing:</span>
+          <span className="text-slate-400 text-[11px]">Pairing:</span>
           {pairing ? (
             <span
-              className={`px-2 py-0.5 rounded border font-bold ${
+              className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
                 pairing.diagnostic === "OK"
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                   : "bg-amber-500/10 text-amber-400 border-amber-500/30"
               }`}
             >
-              {pairing.diagnostic === "OK" ? `OK · ${pairing.schematicId}` : "NO_COMPANION"}
+              {pairing.diagnostic === "OK" ? `SYNC OK · ${pairing.schematicId}` : "NO_COMPANION"}
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">—</span>
+            <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[10px]">—</span>
           )}
         </div>
       </header>

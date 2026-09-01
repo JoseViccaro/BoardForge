@@ -5,9 +5,13 @@ export interface SchematicSymbolProps {
   id: string;
   refDes: string;
   bankDesignator?: string;
-  pageNumber: number;
+  pageNumber?: number;
+  sheetNumber?: number;
   bounds: BoundingBox2D;
   pins?: SchematicPinLocation[];
+  value?: string;
+  packageFootprint?: string;
+  footprint?: string;
 }
 
 export class SchematicSymbol {
@@ -16,6 +20,8 @@ export class SchematicSymbol {
   public readonly bankDesignator?: string;
   public readonly pageNumber: number;
   public readonly bounds: BoundingBox2D;
+  public readonly value?: string;
+  public readonly packageFootprint?: string;
   private readonly _pins: SchematicPinLocation[] = [];
 
   constructor(props: SchematicSymbolProps) {
@@ -25,7 +31,8 @@ export class SchematicSymbol {
     if (!props.refDes || props.refDes.trim().length === 0) {
       throw new Error("refDes cannot be empty");
     }
-    if (!Number.isInteger(props.pageNumber) || props.pageNumber <= 0) {
+    const pageNum = props.sheetNumber ?? props.pageNumber;
+    if (pageNum === undefined || !Number.isInteger(pageNum) || pageNum <= 0) {
       throw new Error("pageNumber must be a positive integer");
     }
     if (!props.bounds) {
@@ -35,14 +42,24 @@ export class SchematicSymbol {
     this.id = props.id.trim();
     this.refDes = props.refDes.trim();
     this.bankDesignator = props.bankDesignator ? props.bankDesignator.trim() : undefined;
-    this.pageNumber = props.pageNumber;
+    this.pageNumber = pageNum;
     this.bounds = props.bounds;
+    this.value = props.value?.trim();
+    this.packageFootprint = (props.packageFootprint ?? props.footprint)?.trim();
 
     if (props.pins) {
       for (const pin of props.pins) {
         this.addPin(pin);
       }
     }
+  }
+
+  public get sheetNumber(): number {
+    return this.pageNumber;
+  }
+
+  public get footprint(): string | undefined {
+    return this.packageFootprint;
   }
 
   public get pins(): ReadonlyArray<SchematicPinLocation> {

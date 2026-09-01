@@ -42,9 +42,9 @@ export function BoardViewPanel({ facade, boardId, boardData, crossProbe }: Board
   const [activeLayerTab, setActiveLayerTab] = useState<string>("copper");
   const [reveal, setReveal] = useState<CrossProbeReveal | null>(null);
 
-  // Camera transform (legacy defaults calibrated for the 4-board layout)
-  const [scale, setScale] = useState<number>(4.4);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 30, y: -40 });
+  // Camera transform calibrated for clean view of the 4 board layout
+  const [scale, setScale] = useState<number>(6.5);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 40, y: 30 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -160,117 +160,111 @@ export function BoardViewPanel({ facade, boardId, boardData, crossProbe }: Board
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 flex items-center justify-center overflow-hidden w-full h-full">
-          <canvas
-            ref={canvasRef}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onClick={handleCanvasClick}
-            className="w-full h-full bg-[#040508] cursor-crosshair"
-          />
+      <div className="flex-1 flex overflow-hidden min-h-0 relative">
+        <div className="flex-1 flex flex-col relative overflow-hidden min-w-0">
+          <div className="flex-1 relative overflow-hidden w-full h-full bg-[#040508]">
+            <canvas
+              ref={canvasRef}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onClick={handleCanvasClick}
+              className="absolute inset-0 w-full h-full cursor-crosshair block"
+            />
+          </div>
+
+          <div className="h-8 bg-slate-900 border-t border-slate-800 px-3 flex items-center justify-between text-[11px] shrink-0 z-10">
+            <div className="flex items-center space-x-1 overflow-x-auto">
+              <span className="px-2 py-0.5 bg-slate-950 text-slate-400 border border-slate-800 rounded font-semibold text-[10px] mr-1 flex items-center space-x-1">
+                <Layers className="w-2.5 h-2.5" />
+                <span>Layers:</span>
+              </span>
+              {BOARD_LAYER_TABS.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveLayerTab(tab)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                    activeLayerTab === tab
+                      ? "bg-amber-400 text-slate-950 font-bold shadow"
+                      : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            <div className="text-[10px] font-mono text-slate-400 shrink-0">
+              {boardData.pins.length} pads · {boardData.components.length} components
+            </div>
+          </div>
         </div>
 
-        <div className="h-8 bg-slate-900 border-t border-slate-800 px-3 flex items-center justify-between text-[11px] shrink-0">
-          <div className="flex items-center space-x-1 overflow-x-auto">
-            <span className="px-2 py-0.5 bg-slate-950 text-slate-400 border border-slate-800 rounded font-semibold text-[10px] mr-1 flex items-center space-x-1">
-              <Layers className="w-2.5 h-2.5" />
-              <span>Layers:</span>
-            </span>
-            {BOARD_LAYER_TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveLayerTab(tab)}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
-                  activeLayerTab === tab
-                    ? "bg-amber-400 text-slate-950 font-bold shadow"
-                    : "bg-slate-800 text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="text-[10px] font-mono text-slate-400 shrink-0">
-            {boardData.pins.length} pads · {boardData.components.length} components
-          </div>
-        </div>
-      </div>
-
-      <aside className="w-72 bg-slate-900/90 border-t border-slate-800 p-3 shrink-0 overflow-y-auto custom-scrollbar">
-        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
-          <div className="text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-2 mb-2.5">
-            Pin Details
-          </div>
-          {selectedPin ? (
-            <div className="space-y-1.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Pin:</span>
-                <strong className="text-amber-400 font-mono">{selectedPin.id}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Net:</span>
-                <strong className="text-cyan-400 font-mono">{selectedPin.net}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Class:</span>
-                <span className="text-slate-200 font-mono">{classifyNet(selectedPin.net)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Board:</span>
-                <span className="text-slate-200 font-mono">{selectedPin.boardIndex}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Diode Vf:</span>
-                <span className="text-emerald-400 font-mono">
-                  {selectedPin.diodeMv !== undefined ? `${selectedPin.diodeMv} mV` : "N/A"}
-                </span>
-              </div>
+        <aside className="w-64 bg-slate-900 border-l border-slate-800 p-2.5 shrink-0 overflow-y-auto custom-scrollbar">
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
+            <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-1.5 mb-2">
+              Pin Details
             </div>
-          ) : (
-            <div className="text-[11px] text-slate-500">Click a pad to inspect it.</div>
-          )}
-
-          <div className="mt-3 pt-3 border-t border-slate-800/80">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Schematic Reveal
-            </div>
-            {reveal ? (
-              <div className="space-y-1 text-[11px] font-mono">
+            {selectedPin ? (
+              <div className="space-y-1.5 text-xs font-mono">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">RefDes:</span>
-                  <span className="text-amber-400 font-bold">{reveal.refDes}</span>
+                  <span className="text-slate-400 text-[11px]">Pin:</span>
+                  <strong className="text-amber-400">{selectedPin.id}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Pages:</span>
-                  <span className="text-slate-200">
-                    {reveal.pages.length > 0 ? reveal.pages.join(", ") : "—"}
-                  </span>
+                  <span className="text-slate-400 text-[11px]">Net:</span>
+                  <strong className="text-cyan-400">{selectedPin.net}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Coords:</span>
-                  <span className="text-slate-200">
-                    {reveal.hits.length > 0
-                      ? reveal.hits.map((h) => `(${h.connectionPoint.x.toFixed(1)}, ${h.connectionPoint.y.toFixed(1)})`).join("; ")
-                      : "—"}
-                  </span>
+                  <span className="text-slate-400 text-[11px]">Class:</span>
+                  <span className="text-slate-200">{classifyNet(selectedPin.net)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Nets:</span>
-                  <span className="text-cyan-400">
-                    {reveal.connectedNets.length > 0 ? reveal.connectedNets.join(", ") : "—"}
+                  <span className="text-slate-400 text-[11px]">Board:</span>
+                  <span className="text-slate-200">{selectedPin.boardIndex}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400 text-[11px]">Diode Vf:</span>
+                  <span className="text-emerald-400">
+                    {selectedPin.diodeMv !== undefined ? `${selectedPin.diodeMv} mV` : "N/A"}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="text-[11px] text-slate-500">Click a pad to cross-probe the schematic.</div>
+              <div className="text-[10px] text-slate-500">Click a pad on the board to inspect.</div>
             )}
+
+            <div className="mt-2.5 pt-2.5 border-t border-slate-800">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Schematic Reveal
+              </div>
+              {reveal ? (
+                <div className="space-y-1 text-[10px] font-mono">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">RefDes:</span>
+                    <span className="text-amber-400 font-bold">{reveal.refDes}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Pages:</span>
+                    <span className="text-slate-200">
+                      {reveal.pages.length > 0 ? reveal.pages.join(", ") : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Nets:</span>
+                    <span className="text-cyan-400">
+                      {reveal.connectedNets.length > 0 ? reveal.connectedNets.join(", ") : "—"}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[10px] text-slate-500">Click a pad to cross-probe.</div>
+              )}
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      </div>
     </div>
   );
 }

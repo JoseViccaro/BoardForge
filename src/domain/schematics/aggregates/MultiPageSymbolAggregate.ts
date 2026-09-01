@@ -17,7 +17,8 @@ export class MultiPageSymbolAggregate {
   }
 
   public addSymbolBank(symbol: SchematicSymbol): void {
-    if (symbol.refDes.toUpperCase() !== this.refDes) {
+    const symbolBase = symbol.refDes.toUpperCase().replace(/_[A-Z0-9]+$/, "");
+    if (symbol.refDes.toUpperCase() !== this.refDes && symbolBase !== this.refDes) {
       throw new Error(`refDes mismatch: expected ${this.refDes}, got ${symbol.refDes}`);
     }
     this._symbols.push(symbol);

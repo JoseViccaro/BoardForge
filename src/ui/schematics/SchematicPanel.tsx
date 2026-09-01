@@ -33,6 +33,11 @@ import {
   type SchematicSyncReaction,
 } from "./schematic-sync.js";
 
+import type {
+  ISchematicCrossProbeIndex,
+  SchematicPinHit,
+} from "../../domain/schematics/ports/ISchematicCrossProbeIndex.js";
+
 /**
  * Adapt a real canvas 2D context to the renderer's structural Draw2D port.
  * CanvasRenderingContext2D exposes every member Draw2D needs; only the DOM
@@ -45,7 +50,7 @@ function toDraw2D(ctx: CanvasRenderingContext2D): Draw2D {
 export interface SchematicPanelProps {
   facade: WorkbenchFacade;
   document: SchematicDocument;
-  crossProbe: SchematicCrossProbeIndex;
+  crossProbe: SchematicCrossProbeIndex | ISchematicCrossProbeIndex;
 }
 
 export function SchematicPanel({
@@ -255,12 +260,12 @@ export function SchematicPanel({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 flex items-center justify-center overflow-hidden w-full h-full">
+      <div className="flex-1 flex flex-col relative overflow-hidden min-h-0">
+        <div className="flex-1 relative overflow-hidden w-full h-full bg-[#040508]">
           <canvas
             ref={canvasRef}
             onClick={handleCanvasClick}
-            className="w-full h-full bg-[#040508] cursor-crosshair"
+            className="absolute inset-0 w-full h-full cursor-crosshair block"
           />
         </div>
 
