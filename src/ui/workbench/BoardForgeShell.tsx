@@ -20,6 +20,7 @@ import { generateExactIPhone13MasterCAD } from "../../domain/boardview/geometry/
 import type { SchematicDocument } from "../../domain/schematics/aggregates/SchematicDocument.js";
 import { BoardViewPanel } from "../boardview/BoardViewPanel.js";
 import { SchematicPanel } from "../schematics/SchematicPanel.js";
+import { NetNavigatorPanel } from "../net/NetNavigatorPanel.js";
 import {
   resolveShortcut,
   type KeyboardEventDescriptor,
@@ -142,7 +143,7 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
               </span>
             </div>
             <div className="text-[11px] text-slate-400">
-              Synchronized repair workbench — boardview + schematics live (PR 2/3) · navigator/measure in PR 5-6
+              Synchronized repair workbench — boardview + schematics + navigator live (PR 2-5) · measure in PR 6
             </div>
           </div>
         </div>
@@ -192,12 +193,9 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
       <div className="flex h-44 border-t border-slate-800 bg-slate-900/60">
         <section
           data-panel="navigator"
-          className="w-72 border-r border-slate-800 flex items-center justify-center"
+          className="w-72 border-r border-slate-800 flex flex-col overflow-hidden"
         >
-          <div className="text-center text-slate-600">
-            <div className="text-[11px] font-mono uppercase tracking-wider mb-1">Net Navigator</div>
-            <div className="text-[10px] font-mono text-slate-700">slot · placeholder (PR 5)</div>
-          </div>
+          <NetNavigatorPanel facade={facade} crossProbe={crossProbe} />
         </section>
         <section data-panel="measurements" className="flex-1 flex items-center justify-center">
           <div className="text-center text-slate-600">
