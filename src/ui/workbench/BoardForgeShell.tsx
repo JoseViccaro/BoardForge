@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { WorkbenchFacade } from "../../application/workbench/WorkbenchFacade.js";
 import { BoardViewFacade } from "../../application/boardview/BoardViewFacade.js";
 import { SchematicsFacade } from "../../application/schematics/SchematicsFacade.js";
@@ -20,6 +20,12 @@ import { generateExactIPhone13MasterCAD } from "../../domain/boardview/geometry/
 import type { SchematicDocument } from "../../domain/schematics/aggregates/SchematicDocument.js";
 import { BoardViewPanel } from "../boardview/BoardViewPanel.js";
 import { SchematicPanel } from "../schematics/SchematicPanel.js";
+import { NetNavigatorPanel } from "../net/NetNavigatorPanel.js";
+import {
+  resolveShortcut,
+  type KeyboardEventDescriptor,
+  type WorkbenchAction,
+} from "./keyboardShortcuts.js";
 
 /** Board opened by the shell through the workbench facade (seeded iPhone 13). */
 const SHELL_BOARD_ID = "BRD_820_02106";
@@ -45,6 +51,64 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
   useEffect(() => {
     void facade.openBoard(SHELL_BOARD_ID, { boardModel: "iPhone13", boardRevision: "820-02106" });
   }, [facade]);
+
+  // --- Keyboard shortcuts (Unit 4B) ----------------------------------------
+  //
+  // Cross-probe enabled state. Toggled by the Ctrl+Shift+X shortcut.
+  // The shell owns this state; panels can consume it via props when wired.
+  const [crossProbeEnabled, setCrossProbeEnabled] = React.useState(true);
+
+  /**
+   * Applies a resolved keyboard shortcut action to the workbench.
+   * The shell is a zero-logic adapter: it translates pure-core actions into
+   * DOM side effects (focus) or bus events (search-focus, cross-probe-toggle).
+   */
+  const applyAction = useCallback(
+    (action: WorkbenchAction) => {
+      switch (action.type) {
+        case "panel-focus": {
+          const el = document.querySelector<HTMLElement>(
+            `[data-panel="${action.panel}"]`
+          );
+          el?.focus();
+          break;
+        }
+        case "search-focus": {
+          // Emit on the bus so future search consumers can react.
+          facade.bus.publish("search.focus", { query: "" });
+          break;
+        }
+        case "cross-probe-toggle": {
+          setCrossProbeEnabled((prev) => !prev);
+          break;
+        }
+      }
+    },
+    [facade]
+  );
+
+  // Attach a global keydown listener that normalizes the DOM event into a
+  // KeyboardEventDescriptor and delegates to the pure resolveShortcut core.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const desc: KeyboardEventDescriptor = {
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        altKey: e.altKey,
+        shiftKey: e.shiftKey,
+        key: e.key,
+      };
+
+      const action = resolveShortcut(desc);
+      if (action !== null) {
+        e.preventDefault();
+        applyAction(action);
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [applyAction]);
 
   // Panel data: iPhone 13 CAD geometry (matches the opened board + schematic).
   const boardData = useMemo(() => generateExactIPhone13MasterCAD(), []);
@@ -79,7 +143,7 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
               </span>
             </div>
             <div className="text-[11px] text-slate-400">
-              Synchronized repair workbench — boardview + schematics live (PR 2/3) · navigator/measure in PR 5-6
+              Synchronized repair workbench — boardview + schematics + navigator live (PR 2-5) · measure in PR 6
             </div>
           </div>
         </div>
@@ -129,12 +193,9 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
       <div className="flex h-44 border-t border-slate-800 bg-slate-900/60">
         <section
           data-panel="navigator"
-          className="w-72 border-r border-slate-800 flex items-center justify-center"
+          className="w-72 border-r border-slate-800 flex flex-col overflow-hidden"
         >
-          <div className="text-center text-slate-600">
-            <div className="text-[11px] font-mono uppercase tracking-wider mb-1">Net Navigator</div>
-            <div className="text-[10px] font-mono text-slate-700">slot · placeholder (PR 5)</div>
-          </div>
+          <NetNavigatorPanel facade={facade} crossProbe={crossProbe} />
         </section>
         <section data-panel="measurements" className="flex-1 flex items-center justify-center">
           <div className="text-center text-slate-600">
