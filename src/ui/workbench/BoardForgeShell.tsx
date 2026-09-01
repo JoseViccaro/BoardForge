@@ -27,6 +27,7 @@ import {
   type KeyboardEventDescriptor,
   type WorkbenchAction,
 } from "./keyboardShortcuts.js";
+import { computePanelWidths } from "./panelResize.js";
 
 /** Board opened by the shell through the workbench facade (seeded iPhone 13). */
 const SHELL_BOARD_ID = "BRD_820_02106";
@@ -111,6 +112,100 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
     return () => window.removeEventListener("keydown", handler);
   }, [applyAction]);
 
+  // --- Panel resize (D5 interactive splitter) --------------------------------
+  //
+  // Pure-core panel resize: the shell tracks pointer events on a draggable
+  // divider, delegates width computation to the DOM-free computePanelWidths
+  // core, and persists the result through the existing session pipeline.
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState(0);
+  const dragRef = React.useRef<{
+    pointerId: number;
+    startX: number;
+    containerWidth: number;
+    startLeftWidth: number;
+  } | null>(null);
+  const dragLeftWidthRef = React.useRef<number | null>(null);
+  const [dragLeftWidth, setDragLeftWidth] = React.useState<number | null>(null);
+
+  // Track container width for live resize calculations.
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Read persisted panel widths from the session.
+  const boardviewPanel = session.panels.find((p) => p.id === "boardview");
+
+  // Clamp persisted width against current container; drag override takes precedence.
+  const clampedLeftWidth =
+    containerWidth > 0 && boardviewPanel?.size?.width != null
+      ? computePanelWidths(containerWidth, boardviewPanel.size.width).leftWidth
+      : undefined;
+  const effectiveLeftWidth = dragLeftWidth ?? clampedLeftWidth;
+  const hasExplicitWidth = effectiveLeftWidth != null;
+
+  // Divider pointer handlers — logic delegates to the pure panelResize core.
+  const onDividerPointerDown = React.useCallback(
+    (e: React.PointerEvent) => {
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const currentLeft = effectiveLeftWidth ?? rect.width / 2;
+      dragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        containerWidth: rect.width,
+        startLeftWidth: currentLeft,
+      };
+      dragLeftWidthRef.current = currentLeft;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      e.preventDefault();
+    },
+    [effectiveLeftWidth],
+  );
+
+  const onDividerPointerMove = React.useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragRef.current || e.pointerId !== dragRef.current.pointerId) return;
+      const delta = e.clientX - dragRef.current.startX;
+      const raw = dragRef.current.startLeftWidth + delta;
+      const { leftWidth } = computePanelWidths(dragRef.current.containerWidth, raw);
+      dragLeftWidthRef.current = leftWidth;
+      setDragLeftWidth(leftWidth);
+    },
+    [],
+  );
+
+  const onDividerPointerUp = React.useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragRef.current || e.pointerId !== dragRef.current.pointerId) return;
+      const cw = dragRef.current.containerWidth;
+      const finalLeft = dragLeftWidthRef.current ?? dragRef.current.startLeftWidth;
+      dragRef.current = null;
+      dragLeftWidthRef.current = null;
+      setDragLeftWidth(null);
+
+      // Persist the new panel sizes through the session pipeline.
+      const panels = session.panels.map((p) => {
+        if (p.id === "boardview")
+          return { ...p, size: { width: finalLeft, height: p.size?.height ?? 0 } };
+        if (p.id === "schematics")
+          return { ...p, size: { width: cw - finalLeft, height: p.size?.height ?? 0 } };
+        return p;
+      });
+      facade.sessionStore.update({ ...session, panels });
+      void facade.sessionStore.save();
+    },
+    [session, facade],
+  );
+
   // Panel data: iPhone 13 CAD geometry (matches the opened board + schematic).
   const boardData = useMemo(() => generateExactIPhone13MasterCAD(), []);
 
@@ -173,9 +268,10 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div ref={containerRef} className="flex-1 flex overflow-hidden">
         <section
           data-panel="boardview"
+          style={hasExplicitWidth ? { flex: `0 0 ${effectiveLeftWidth}px` } : undefined}
           className="flex-1 bg-slate-950 border-r border-slate-800 flex flex-col overflow-hidden"
         >
           <BoardViewPanel
@@ -185,6 +281,12 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
             crossProbe={crossProbe}
           />
         </section>
+        <div
+          className="w-1 shrink-0 cursor-col-resize bg-slate-700 hover:bg-slate-500 active:bg-slate-400 z-10"
+          onPointerDown={onDividerPointerDown}
+          onPointerMove={onDividerPointerMove}
+          onPointerUp={onDividerPointerUp}
+        />
         <section
           data-panel="schematics"
           className="flex-1 bg-slate-950 flex flex-col overflow-hidden"
