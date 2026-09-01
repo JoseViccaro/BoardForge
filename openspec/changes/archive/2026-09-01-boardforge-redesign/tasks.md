@@ -56,47 +56,49 @@ Satisfies: **boardview** spec (auto-pairing, net highlighting sync, pin hover/cl
 
 ## Phase 3: Schematics Panel (Vector Renderer + Overlay)
 
+> **ARCHIVE RECONCILIATION**: Phases 3–6 fine-grained rows below were superseded at apply time by the re-sliced 15-unit plan (`tasks-resliced.md`, units 3A–3E, 4A–4B, 5A–5C, 6A–6E). All re-sliced units are marked `[x] applied` and verified complete (verify-report, 23/23 requirements, 37/37 scenarios, 447/447 tests). Authorized archive-time stale-checkbox reconciliation: each superseded row below is marked `[x]` per verify-report proof.
+
 Satisfies: **schematics** spec (vector token rendering, cross-probe overlay, page navigation, component detail). Depends on Phase 1 bus/facade + Phase 2 selection model.
 
-- [ ] 3.1 RED: Create `tests/unit/ui/schematics/VectorRenderer.test.ts` — tokens placed at BoundingBox2D positions; missing page returns empty canvas; page filter correct
-- [ ] 3.2 GREEN: Create `src/ui/schematics/VectorRenderer.ts` — pure function: `(tokens: VectorToken[], page: number, ctx: CanvasRenderingContext2D) => void`; positions tokens by coordinates, text rendering, no raster
-- [ ] 3.3 RED: Create `tests/unit/ui/schematics/HitTester.test.ts` — hit test at coordinates returns matching token; miss returns null; spatial index O(1)/O(log N)
-- [ ] 3.4 GREEN: Create `src/ui/schematics/HitTester.ts` — spatial index over `VectorToken` bounding boxes; `testPoint(x, y, page)` → `VectorToken | null`
-- [ ] 3.5 RED: Create `tests/unit/ui/schematics/SchematicPanel.test.ts` — renders page from tokens; overlay highlights matching net from `selection.change`; empty net → no highlight + signal; page nav (next/prev/jump) works; component detail shows pin map from `SchematicPinLocation`
-- [ ] 3.6 GREEN: Create `src/ui/schematics/SchematicPanel.tsx` — canvas + overlay rendering + page nav controls + component detail panel; subscribes to `selection.change` on bus, queries `SchematicCrossProbeIndex` for highlight targets
-- [ ] 3.7 Wire `BoardForgeShell.tsx` to render `SchematicPanel` in the schematic slot; pass facade for token data
+- [x] 3.1 RED: Create `tests/unit/ui/schematics/VectorRenderer.test.ts` — tokens placed at BoundingBox2D positions; missing page returns empty canvas; page filter correct
+- [x] 3.2 GREEN: Create `src/ui/schematics/VectorRenderer.ts` — pure function: `(tokens: VectorToken[], page: number, ctx: CanvasRenderingContext2D) => void`; positions tokens by coordinates, text rendering, no raster
+- [x] 3.3 RED: Create `tests/unit/ui/schematics/HitTester.test.ts` — hit test at coordinates returns matching token; miss returns null; spatial index O(1)/O(log N)
+- [x] 3.4 GREEN: Create `src/ui/schematics/HitTester.ts` — spatial index over `VectorToken` bounding boxes; `testPoint(x, y, page)` → `VectorToken | null`
+- [x] 3.5 RED: Create `tests/unit/ui/schematics/SchematicPanel.test.ts` — renders page from tokens; overlay highlights matching net from `selection.change`; empty net → no highlight + signal; page nav (next/prev/jump) works; component detail shows pin map from `SchematicPinLocation`
+- [x] 3.6 GREEN: Create `src/ui/schematics/SchematicPanel.tsx` — canvas + overlay rendering + page nav controls + component detail panel; subscribes to `selection.change` on bus, queries `SchematicCrossProbeIndex` for highlight targets
+- [x] 3.7 Wire `BoardForgeShell.tsx` to render `SchematicPanel` in the schematic slot; pass facade for token data
 
 ## Phase 4: Cross-Panel Synchronization
 
 Satisfies: **workbench** spec (cross-panel synchronization scenarios). Depends on Phases 1–3.
 
-- [ ] 4.1 RED: Create `tests/integration/workbench/crossPanelSync.test.ts` — assembly test: boardview emits `selection.change{net}` → bus delivers to SchematicPanel + NetNavigatorPanel; `SchematicCrossProbeIndex.queryFromBoardViewNet` reverse-maps correctly; selection with no counterpart → schematic empty, navigator "not in schematic" marker
-- [ ] 4.2 GREEN: Wire `SchematicPanel` subscription to `selection.change` with `CrossProbeIndex` reverse-mapping in `BoardForgeShell.tsx` or through facade composition
-- [ ] 4.3 RED: Create `tests/unit/workbench/keyboardShortcuts.test.ts` — shortcut key maps to panel focus change; net jump shortcut; cross-probe toggle
-- [ ] 4.4 GREEN: Implement keyboard shortcut handler in `BoardForgeShell.tsx` — focus management across panels, `Ctrl+[number]` for panel focus, net navigation shortcuts
+- [x] 4.1 RED: Create `tests/integration/workbench/crossPanelSync.test.ts` — assembly test: boardview emits `selection.change{net}` → bus delivers to SchematicPanel + NetNavigatorPanel; `SchematicCrossProbeIndex.queryFromBoardViewNet` reverse-maps correctly; selection with no counterpart → schematic empty, navigator "not in schematic" marker
+- [x] 4.2 GREEN: Wire `SchematicPanel` subscription to `selection.change` with `CrossProbeIndex` reverse-mapping in `BoardForgeShell.tsx` or through facade composition
+- [x] 4.3 RED: Create `tests/unit/workbench/keyboardShortcuts.test.ts` — shortcut key maps to panel focus change; net jump shortcut; cross-probe toggle
+- [x] 4.4 GREEN: Implement keyboard shortcut handler in `BoardForgeShell.tsx` — focus management across panels, `Ctrl+[number]` for panel focus, net navigation shortcuts
 
 ## Phase 5: Search + Net Navigator
 
 Satisfies: **search** spec (multi-field unified search, real-time results, history, symptom search). Depends on Phase 1 bus/facade + Phase 4 selection model.
 
-- [ ] 5.1 RED: Create `tests/unit/ui/search/WorkbenchSearchService.test.ts` — 4-field substring match (net, designator, part#, symptom); ranked results; history recorded newest-first; history deduped; symptom → `CRITICAL_LOW_OR_SHORT` candidate mapping; ASVS L2 input sanitization
-- [ ] 5.2 GREEN: Create `src/application/workbench/WorkbenchSearchService.ts` — in-memory 4-field index over loaded session; `search(query)` → `SearchHit[]` with field, panel context, board origin; `history()` → `string[]` newest-first
-- [ ] 5.3 RED: Create `tests/unit/ui/net/NetNavigatorPanel.test.ts` — renders filtered net list from session; filter by selection; "not in schematic" marker on unmapped nets; search highlights matches; history display
-- [ ] 5.4 GREEN: Create `src/ui/net/NetNavigatorPanel.tsx` — filterable net list + search input + history list; subscribes to `selection.change` on bus to highlight/filter; "not in schematic" marker via `SchematicCrossProbeIndex`
-- [ ] 5.5 Wire `BoardForgeShell.tsx` to render `NetNavigatorPanel`; connect to facade search + bus
+- [x] 5.1 RED: Create `tests/unit/ui/search/WorkbenchSearchService.test.ts` — 4-field substring match (net, designator, part#, symptom); ranked results; history recorded newest-first; history deduped; symptom → `CRITICAL_LOW_OR_SHORT` candidate mapping; ASVS L2 input sanitization
+- [x] 5.2 GREEN: Create `src/application/workbench/WorkbenchSearchService.ts` — in-memory 4-field index over loaded session; `search(query)` → `SearchHit[]` with field, panel context, board origin; `history()` → `string[]` newest-first
+- [x] 5.3 RED: Create `tests/unit/ui/net/NetNavigatorPanel.test.ts` — renders filtered net list from session; filter by selection; "not in schematic" marker on unmapped nets; search highlights matches; history display
+- [x] 5.4 GREEN: Create `src/ui/net/NetNavigatorPanel.tsx` — filterable net list + search input + history list; subscribes to `selection.change` on bus to highlight/filter; "not in schematic" marker via `SchematicCrossProbeIndex`
+- [x] 5.5 Wire `BoardForgeShell.tsx` to render `NetNavigatorPanel`; connect to facade search + bus
 
 ## Phase 6: Measurements + Session Persistence
 
 Satisfies: **measurements** spec (diode form, inline validation, history/trends, export) + **session** spec (full persistence, corrupt recovery, pairing restore, selection restore). Depends on Phases 1–5.
 
-- [ ] 6.1 RED: Create `tests/unit/ui/measure/MeasurementLogStore.test.ts` — record reading with meter profile + board state; append to net/pin history; trend indicator computes deviation; export produces CSV/JSON; history scoped per net
-- [ ] 6.2 GREEN: Create `src/application/workbench/MeasurementLogStore.ts` — `record(dto)` validates against `MeasurementReference` via `DiodeModeEvaluator`, appends to history, computes trend; `export(format)` → string; IndexedDB-backed for persistence
-- [ ] 6.3 RED: Create `tests/unit/ui/measure/MeasurementPanel.test.ts` — diode form renders; required-field validation blocks submit; reading records to log; log displays history chronologically; export button triggers
-- [ ] 6.4 GREEN: Create `src/ui/measure/MeasurementPanel.tsx` — diode-mode form (reading, meter model, mode, range, board state) + bound to selected net/pin from bus + validation + log view + trend display + export button
-- [ ] 6.5 Wire `BoardForgeShell.tsx` to render `MeasurementPanel`; connect to facade `recordMeasurement` + bus selection binding
-- [ ] 6.6 RED: Create `tests/unit/workbench/sessionPersistence.test.ts` — full save/restore cycle: panel positions + selection + search history + measurements + pairing; corrupt state → fresh session + diagnostic; pairing unresolvable → `NO_COMPANION` + board loads; selection net gone → cleared state
-- [ ] 6.7 GREEN: Implement full `SessionStore` save/restore wiring in `WorkbenchFacade` — load session restores all stores; `saveSession()` serializes all state to IndexedDB; session reload re-resolves companion and restores selection
-- [ ] 6.8 Final GREEN: Modify `src/App.tsx` — feature flag default to `true`; remove legacy inline render path; all existing domain/facade tests pass unchanged
+- [x] 6.1 RED: Create `tests/unit/ui/measure/MeasurementLogStore.test.ts` — record reading with meter profile + board state; append to net/pin history; trend indicator computes deviation; export produces CSV/JSON; history scoped per net
+- [x] 6.2 GREEN: Create `src/application/workbench/MeasurementLogStore.ts` — `record(dto)` validates against `MeasurementReference` via `DiodeModeEvaluator`, appends to history, computes trend; `export(format)` → string; IndexedDB-backed for persistence
+- [x] 6.3 RED: Create `tests/unit/ui/measure/MeasurementPanel.test.ts` — diode form renders; required-field validation blocks submit; reading records to log; log displays history chronologically; export button triggers
+- [x] 6.4 GREEN: Create `src/ui/measure/MeasurementPanel.tsx` — diode-mode form (reading, meter model, mode, range, board state) + bound to selected net/pin from bus + validation + log view + trend display + export button
+- [x] 6.5 Wire `BoardForgeShell.tsx` to render `MeasurementPanel`; connect to facade `recordMeasurement` + bus selection binding
+- [x] 6.6 RED: Create `tests/unit/workbench/sessionPersistence.test.ts` — full save/restore cycle: panel positions + selection + search history + measurements + pairing; corrupt state → fresh session + diagnostic; pairing unresolvable → `NO_COMPANION` + board loads; selection net gone → cleared state
+- [x] 6.7 GREEN: Implement full `SessionStore` save/restore wiring in `WorkbenchFacade` — load session restores all stores; `saveSession()` serializes all state to IndexedDB; session reload re-resolves companion and restores selection
+- [x] 6.8 Final GREEN: Modify `src/App.tsx` — feature flag default to `true`; remove legacy inline render path; all existing domain/facade tests pass unchanged
 
 ## Key Learnings
 
