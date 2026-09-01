@@ -21,6 +21,7 @@ import type { SchematicDocument } from "../../domain/schematics/aggregates/Schem
 import { BoardViewPanel } from "../boardview/BoardViewPanel.js";
 import { SchematicPanel } from "../schematics/SchematicPanel.js";
 import { NetNavigatorPanel } from "../net/NetNavigatorPanel.js";
+import { MeasurementPanel } from "../measure/MeasurementPanel.js";
 import {
   resolveShortcut,
   type KeyboardEventDescriptor,
@@ -126,6 +127,12 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
     return index;
   }, [schematicDocument]);
 
+  // Measurement profile backing the diode-mode references (read from the seed).
+  const measurementProfile = useMemo(
+    () => createIPhone13LogicBoardFixture().measurementProfile,
+    []
+  );
+
   const boardId = pairing?.boardId ?? SHELL_BOARD_ID;
 
   return (
@@ -197,11 +204,8 @@ export function BoardForgeShell({ facade }: { facade: WorkbenchFacade }) {
         >
           <NetNavigatorPanel facade={facade} crossProbe={crossProbe} />
         </section>
-        <section data-panel="measurements" className="flex-1 flex items-center justify-center">
-          <div className="text-center text-slate-600">
-            <div className="text-[11px] font-mono uppercase tracking-wider mb-1">Measurement Capture</div>
-            <div className="text-[10px] font-mono text-slate-700">slot · placeholder (PR 6)</div>
-          </div>
+        <section data-panel="measurements" className="flex-1 flex flex-col overflow-hidden">
+          <MeasurementPanel facade={facade} profile={measurementProfile} />
         </section>
       </div>
 
