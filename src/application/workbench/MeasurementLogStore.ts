@@ -120,6 +120,16 @@ export class MeasurementLogStore {
     return entry;
   }
 
+  /** Returns all log entries in insertion order (session save/export). */
+  public getEntries(): MeasurementLogEntry[] {
+    return this.entries.slice();
+  }
+
+  /** Replaces the whole log with entries restored from a persisted session (6E). */
+  public restoreEntries(entries: MeasurementLogEntry[]): void {
+    this.entries = entries.slice();
+  }
+
   /** Returns this pad's readings in chronological order. */
   public historyFor(padId: string): MeasurementLogEntry[] {
     return this.entries

@@ -12,7 +12,7 @@ import {
 import {
   SessionStore,
   type SessionState,
-  type SessionLoadResult,
+  type SessionRestoreResult,
 } from "./SessionStore.js";
 import { WorkbenchSearchService, type SearchHit } from "./WorkbenchSearchService.js";
 import { MeasurementLogStore } from "./MeasurementLogStore.js";
@@ -180,9 +180,13 @@ export class WorkbenchFacade {
     return this.sessionStore.getSnapshot();
   }
 
-  /** Emits the shared selection through the bus for cross-panel propagation. */
+  /** Emits the shared selection through the bus and folds it into the session for persistence. */
   public select(target: SelectionTarget): void {
     this.bus.publish("selection.change", target);
+    this.sessionStore.update({
+      ...this.sessionStore.getSnapshot(),
+      selection: { ...target },
+    });
   }
 
   /** Delegates to MeasurementsFacade and publishes measurement.recorded. */
@@ -206,11 +210,68 @@ export class WorkbenchFacade {
     return hits;
   }
 
+  /**
+   * Persists the full facade/app state (positions, selection, search history,
+   * measurement log and pairing) into the IndexedDB-backed SessionStore. The
+   * current measurement-log entries are folded into the session's `measurements`
+   * slice so the whole app state round-trips through a single stored document.
+   */
   public async saveSession(): Promise<void> {
+    this.sessionStore.update({
+      ...this.sessionStore.getSnapshot(),
+      measurements: this.measurementLogStore.getEntries(),
+    });
     await this.sessionStore.save();
   }
 
-  public async loadSession(id?: string): Promise<SessionLoadResult> {
-    return await this.sessionStore.load(id);
+  /**
+   * Restores the FULL workbench session through the SessionStore's 6D pipeline,
+   * then applies it back onto the facade/app state:
+   *
+   *  - re-resolves the companion for the restored pairing (refresh OK on
+   *    resolvable boards, preserve NO_COMPANION where unresolvable),
+   *  - re-applies the restored selection to the currently open panel via the bus,
+   *  - hydrates the MeasurementLogStore from the restored measurements slice.
+   *
+   * Corrupt/schema-invalid persisted state recovers to a fresh session (ASVS L2)
+   * instead of throwing.
+   */
+  public async loadSession(id?: string): Promise<SessionRestoreResult> {
+    const result = await this.sessionStore.restoreFullSession();
+
+    // Re-resolve the companion for the restored pairing (never trust the stored
+    // schematicId verbatim — re-derive it; NO_COMPANION preserved unresolvable).
+    if (result.session.pairing?.boardId) {
+      const boardId = result.session.pairing.boardId;
+      let resolution: CompanionResolution;
+      try {
+        const boardView = await this.deps.boardViewFacade.getBoardView(boardId);
+        const boardModel = this.deps.defaultBoardModel ?? "UNKNOWN";
+        const boardRevision = boardView.boardNumber ?? "UNKNOWN";
+        resolution = resolveCompanion(boardModel, boardRevision);
+      } catch {
+        resolution = { boardModel: "UNKNOWN", boardRevision: "UNKNOWN", diagnostic: "NO_COMPANION" };
+      }
+      const updatedPairing = {
+        boardId,
+        schematicId: resolution.schematicId,
+        diagnostic: resolution.diagnostic,
+      };
+      result.session = this.sessionStore.update({
+        ...result.session,
+        pairing: updatedPairing,
+      });
+      this.bus.publish("pairing.resolved", updatedPairing);
+    }
+
+    // Restore the selection onto the currently open panel.
+    if (result.session.selection) {
+      this.bus.publish("selection.change", result.session.selection);
+    }
+
+    // Hydrate the measurement log from the restored measurements slice.
+    this.measurementLogStore.restoreEntries(result.measurements);
+
+    return result;
   }
 }
