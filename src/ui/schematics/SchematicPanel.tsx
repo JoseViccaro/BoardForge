@@ -5,16 +5,18 @@
  * units 3A-3D. It performs NO business/domain logic of its own — every behavior
  * lives in the already-tested cores:
  *
- *   - renders pages via VectorRenderer (`renderPage`)
- *   - hit-tests clicks via HitTester on token bounds
- *   - draws the cross-probe overlay via overlay-resolve (`resolveNetOverlay`)
- *   - navigates pages via schematic-nav (`SchematicNavigator`, `jumpToRefDes`)
- *   - shows the detail pin row / connected nets via schematic-pinmap
- *     (`buildPinMap`, `collectConnectedNets`)
+ *  - renders pages via VectorRenderer (`renderPage`)
+ *  - hit-tests clicks via HitTester on token bounds
+ *  - draws the cross-probe overlay, navigates pages and builds the detail
+ *    pin row via the cross-panel sync core (`applySelectionToSchematic`,
+ *    schematic-sync 4A), which composes overlay-resolve / schematic-nav /
+ *    schematic-pinmap from units 3C/3D.
  *
  * It subscribes to the workbench `selection.change` bus event so a boardview
  * selection (net / refDes) drives the schematic highlight and page navigation
- * at sub-second latency, mirroring the BoardViewPanel adapter (PR 2).
+ * at sub-second latency, mirroring the BoardViewPanel adapter (PR 2). All
+ * reaction logic lives in the pure `applySelectionToSchematic` core so the
+ * cross-panel wiring is verified by the node integration test (PR 4A).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -24,19 +26,12 @@ import type { SchematicCrossProbeIndex } from "../../domain/schematics/services/
 import type { VectorToken } from "../../domain/schematics/value-objects/VectorToken.js";
 import { renderPage, type Draw2D } from "./VectorRenderer.js";
 import { HitTester } from "./HitTester.js";
+import { SchematicNavigator } from "./schematic-nav.js";
 import {
-  resolveNetOverlay,
-  type OverlayResolveResult,
-} from "./overlay-resolve.js";
-import {
-  SchematicNavigator,
-  jumpToRefDes,
-} from "./schematic-nav.js";
-import {
-  buildPinMap,
-  collectConnectedNets,
-  type PinMapRow,
-} from "./schematic-pinmap.js";
+  applySelectionToSchematic,
+  type SchematicDetail,
+  type SchematicSyncReaction,
+} from "./schematic-sync.js";
 
 /**
  * Adapt a real canvas 2D context to the renderer's structural Draw2D port.
@@ -53,14 +48,6 @@ export interface SchematicPanelProps {
   crossProbe: SchematicCrossProbeIndex;
 }
 
-/** Detail model shown in the pin row: a refDes, its page list and pin map. */
-interface ComponentDetail {
-  refDes: string;
-  pageList: number[];
-  pins: PinMapRow[];
-  connectedNets: string[];
-}
-
 export function SchematicPanel({
   facade,
   document,
@@ -68,14 +55,14 @@ export function SchematicPanel({
 }: SchematicPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [overlay, setOverlay] = useState<OverlayResolveResult>({
+  const [overlay, setOverlay] = useState<SchematicSyncReaction["overlay"]>({
     notInSchematic: false,
     pageNumbers: [],
     highlights: [],
   });
   const [notInSchematic, setNotInSchematic] = useState<boolean>(false);
   const [activeNet, setActiveNet] = useState<string | null>(null);
-  const [detail, setDetail] = useState<ComponentDetail | null>(null);
+  const [detail, setDetail] = useState<SchematicDetail | null>(null);
 
   // Navigator initialized to page 1 over the document's page count.
   const navigator = useMemo(
@@ -110,33 +97,18 @@ export function SchematicPanel({
   const repaint = useCallback(() => setFrame((n) => n + 1), []);
 
   // Bus subscription: a boardview selection drives the schematic overlay/nav.
+  // All reaction logic lives in the pure `applySelectionToSchematic` core
+  // (PR 4A) — the panel only applies the returned state.
   useEffect(() => {
     return facade.bus.subscribe("selection.change", (selection) => {
-      if (selection.net) {
-        const result = resolveNetOverlay(crossProbe, selection.net);
-        setOverlay(result);
-        setNotInSchematic(result.notInSchematic);
-        setActiveNet(selection.net);
-        if (result.pageNumbers.length > 0) {
-          navigator.jumpTo(result.pageNumbers[0]);
-          setCurrentPage(navigator.currentPage);
-        }
+      const reaction = applySelectionToSchematic(crossProbe, document, navigator, selection);
+      setOverlay(reaction.overlay);
+      setNotInSchematic(reaction.notInSchematic);
+      setActiveNet(reaction.activeNet);
+      if (reaction.pageToShow !== null) {
+        setCurrentPage(reaction.pageToShow);
       }
-      if (selection.refDes) {
-        const aggregate = document.getSymbol(selection.refDes);
-        if (aggregate) {
-          const jump = jumpToRefDes(aggregate);
-          navigator.jumpTo(jump.pageNumber);
-          setCurrentPage(navigator.currentPage);
-          const pins = document.findPinsForRefDes(aggregate.refDes);
-          setDetail({
-            refDes: aggregate.refDes,
-            pageList: jump.pageList,
-            pins: buildPinMap(pins),
-            connectedNets: collectConnectedNets(pins),
-          });
-        }
-      }
+      setDetail(reaction.detail);
       repaint();
     });
   }, [facade, crossProbe, document, navigator, repaint]);
