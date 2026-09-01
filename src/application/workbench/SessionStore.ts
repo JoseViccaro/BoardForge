@@ -1,12 +1,19 @@
 import { z } from "zod";
+import { EvaluationOutcome } from "../../domain/measurements/value-objects/EvaluationOutcome.js";
+import { DiagnosticBoardState } from "../../domain/measurements/value-objects/DiagnosticBoardState.js";
 
 /**
- * SessionStore — IndexedDB-backed workbench session persistence (PR 1).
+ * SessionStore — IndexedDB-backed workbench session persistence (PR 1 + 6D).
  *
- * Persists panel geometry, shared selection, search history, and board+schematic
- * pairing. All persisted payloads are schema-validated on load per OWASP ASVS L2:
- * corrupt JSON or schema-invalid state recovers to a fresh session with a
- * recoverable diagnostic instead of crashing.
+ * Persists panel geometry, shared selection, search history, measurements log,
+ * and board+schematic pairing. All persisted payloads are schema-validated on
+ * load per OWASP ASVS L2: corrupt JSON or schema-invalid state recovers to a
+ * fresh session with a recoverable diagnostic instead of crashing.
+ *
+ * Unit 6D adds `restoreFullSession()` — full-session restore pipeline with
+ * ASVS L2 full-schema validation of ALL persisted slices (positions, selection,
+ * history, measurements, pairing). On validation failure, produces a fresh
+ * session + diagnostic. Includes gone-net clearing and NO_COMPANION handling.
  *
  * The storage backend is a port (`ISessionStoragePort`) so the store stays a
  * pure application-layer unit (tested with an in-memory port); the production
@@ -53,11 +60,78 @@ export const sessionStateSchema = z
       })
       .nullable()
       .optional(),
+    /**
+     * Serialized measurement log carried in the full-session restore pipeline
+     * (6D). Absent in sessions persisted before 6D; validated per entry against
+     * its full schema (ASVS L2) so stored data is never trusted verbatim.
+     */
+    measurements: z.array(
+      z.object({
+        padId: z.string().min(1),
+        netName: z.string().nullable(),
+        outcome: z.nativeEnum(EvaluationOutcome),
+        measuredVolts: z.number(),
+        normalizedVolts: z.number(),
+        recordedAt: z.string(),
+        boardState: z.nativeEnum(DiagnosticBoardState),
+        meterModel: z.string().min(1),
+      })
+    ).optional(),
     updatedAt: z.string(),
   })
   .strict();
 
 export type SessionState = z.infer<typeof sessionStateSchema>;
+
+/**
+ * A single serialized measurement-log entry carried within a restored session
+ * (mirrors the `MeasurementLogEntry` shape produced by MeasurementLogStore;
+ * domain enums are validated against their allowed values).
+ */
+export interface SessionMeasurementEntry {
+  padId: string;
+  netName: string | null;
+  outcome: EvaluationOutcome;
+  measuredVolts: number;
+  normalizedVolts: number;
+  recordedAt: string;
+  boardState: DiagnosticBoardState;
+  meterModel: string;
+}
+
+/** ASVS L2 schema for the measurements slice of a persisted session. */
+export const sessionMeasurementSchema = z.object({
+  padId: z.string().min(1),
+  netName: z.string().nullable(),
+  outcome: z.nativeEnum(EvaluationOutcome),
+  measuredVolts: z.number(),
+  normalizedVolts: z.number(),
+  recordedAt: z.string(),
+  boardState: z.nativeEnum(DiagnosticBoardState),
+  meterModel: z.string().min(1),
+});
+
+/** Result of a full-session restore (R1/R2/R3/R4). */
+export interface SessionRestoreResult {
+  /** Restored (or fresh-on-corruption) session core state. */
+  session: SessionState;
+  /** Restored measurements slice; empty on corruption or nothing persisted. */
+  measurements: SessionMeasurementEntry[];
+  /** True when persisted data was corrupt/schema-invalid and was reset. */
+  recovered: boolean;
+  /** Recoverable diagnostic (e.g. CORRUPT_STATE_RESET). */
+  diagnostic?: string;
+}
+
+/** Options controlling restore-time verification (gone-net clearing). */
+export interface RestoreFullSessionOptions {
+  /**
+   * Predicate that resolves whether a board's net still exists. When it returns
+   * false, the restored selection's `.net` is cleared (gone-net per R3). Omitted
+   * when the caller has no authoritative net catalog at restore time.
+   */
+  checkNet?: (boardId: string, net: string) => Promise<boolean>;
+}
 
 export interface SessionLoadResult {
   state: SessionState;
@@ -159,6 +233,73 @@ export class SessionStore {
     this.current = parsed;
     this.notify();
     return { state: this.current, recovered: false };
+  }
+
+  /**
+   * Restores the FULL session pipeline (positions, selection, history,
+   * measurements, pairing) from the storage port. Per OWASP ASVS L2, stored
+   * session data is never trusted before restore: every persisted slice is
+   * schema-validated, and on any corruption/invalid field the store fail-safes
+   * to a fresh session + recoverable diagnostic (never throws). The optional
+   * measure slip notifies when state changed (no-op when nothing persisted).
+   *
+   * Gone-net handling (R3): when `checkNet` is provided, a stale selected net
+   * that no longer exists is cleared from the restored selection. NO_COMPANION
+   * pairings are preserved as-is.
+   */
+  public async restoreFullSession(
+    options: RestoreFullSessionOptions = {}
+  ): Promise<SessionRestoreResult> {
+    const raw = await this.port.read(this.key);
+    if (raw === null) {
+      return { session: this.current, measurements: [], recovered: false };
+    }
+
+    const parsed = parseSessionState(raw);
+    if (parsed === null) {
+      return this.resetToFresh("CORRUPT_STATE_RESET");
+    }
+
+    // ASVS L2: the measurements slice is schema-validated as part of the full
+    // session schema above (absent in pre-6D sessions → empty). Invalid entry
+    // shapes fail the whole state parse → recovered fresh above.
+    const measurements: SessionMeasurementEntry[] = parsed.measurements ?? [];
+
+    const session = parsed;
+    if (options.checkNet && session.selection?.net) {
+      const exists = await options.checkNet(session.selection.boardId, session.selection.net);
+      if (!exists) {
+        session.selection = {
+          boardId: session.selection.boardId,
+          refDes: session.selection.refDes,
+          pin: session.selection.pin,
+        };
+      }
+    }
+
+    this.current = session;
+    this.notify();
+    return {
+      session: this.current,
+      measurements,
+      recovered: false,
+    };
+  }
+
+  /**
+   * Resets the store to a fresh session, notifies subscribers, and returns a
+   * recovered result carrying the given diagnostic. Shared by all fail-safe
+   * paths (corrupt JSON / schema-invalid / invalid slice).
+   */
+  private resetToFresh(diagnostic: string): SessionRestoreResult {
+    this.current = createInitialSessionState();
+    this.notify();
+    return {
+      session: this.current,
+      measurements: [],
+      recovered: true,
+      diagnostic,
+    };
   }
 
   /** Removes all listeners. */
